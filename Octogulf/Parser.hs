@@ -91,7 +91,7 @@ parseBlock = myTrace "parseBlock" $ do
 
 
 parseStatement = myTrace "parseStatement" $ do
-  stmt <- (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
+  stmt <- (try parseStr) <|> (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
           <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
   return . myShowTrace $ stmt
 
@@ -127,7 +127,7 @@ parseAssignment = myTrace "parseAssignment" $ do
 
 
 parseBinOp = myTrace "parseBinOp" $ (do
-  op <- parseString "+" <|> parseString "-" <|> parseString "*"
+  op <- parseString "+" <|> parseString "-" <|> parseString "*" <|> parseString "<" <|> parseString ">"
   a <- parseStatement
   b <- parseStatement
   return . myShowTrace $ BinOp op a b)
@@ -160,6 +160,15 @@ parseInt = myTrace "parseInt" $ do
   if isJust sign
     then return . myShowTrace $ Literal (ValueInteger ( (-1) * (read dgs) ))
     else return . myShowTrace $ Literal (ValueInteger (read dgs))
+
+
+parseStr = do
+  optional $ skipAhead
+  char '"'
+  chars <- many $ noneOf "\""
+  char '"'
+  optional $ skipAhead
+  return $ Literal (ValueString chars)
 
 
 runParserWithString p input = 

@@ -10,6 +10,7 @@ import Control.Monad.State
 import System.IO
 import Control.Monad.IO.Class
 import Data.Maybe
+import qualified Data.Map as M
 
 newHT :: IO (HashTable String Value)
 newHT = H.new
@@ -131,19 +132,45 @@ evalStatement (Assignment var stmt) = do
   setVar var stmt'
   return stmt'
 
-evalStatement (BinOp "+" left right) = do
+evalStatement (BinOp op left right) = do
   left' <- evalStatement left
   right' <- evalStatement right
-  return $ binAdd left' right'
+  return $ binOp op left' right'
 
 evalStatement (Call name args) = do
-  args' <- mapM evalStatement args
-  proc <- findProc name
-  evalProcedure (fromJust proc) args'
+ case M.lookup name builtins of
+  Nothing -> do
+   args' <- mapM evalStatement args
+   proc <- findProc name
+   evalProcedure (fromJust proc) args'
+  (Just q) -> do
+   args' <- mapM evalStatement args
+   q args'
 
+evalStatement (If cond block) = do
+  cond' <- evalStatement cond
+  case cond' of
+    ValueInteger 0 -> return ValueNULL
+    _ -> evalBlock block
+
+builtins :: M.Map String ([Value] -> Octomonad Value)
+builtins = M.fromList [("PrintStrLn", bPrintStrLn)]
+
+bPrintStrLn (x:xs) = liftIO $ print x >> return ValueNULL
+
+binOp "+" = binAdd
+binOp "<" = binLT
+binOp ">" = binGT
 
 binAdd (ValueString left) (ValueString right) = ValueString $ left ++ right
 binAdd (ValueInteger left) (ValueInteger right) = ValueInteger $ left + right
+
+binLT left right = if isLT left right then ValueInteger 1 else ValueInteger 0
+
+binGT left right = if isGT left right then ValueInteger 1 else ValueInteger 0
+
+isLT left right = left < right
+isGT left right = left > right
 
 
 insertArgs :: [(String, Value)] -> Octomonad ()
