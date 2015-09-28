@@ -1,3 +1,10 @@
+module Octogulf.Parser (
+   runParserWithString,
+   parseProcedure,
+   Procedure(..),
+   Statement(..)
+  ) where
+
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Combinator
 import Text.ParserCombinators.Parsec.Expr
@@ -5,6 +12,8 @@ import Text.ParserCombinators.Parsec.Token
 
 import Data.Maybe
 import Debug.Trace
+
+import Octogulf.Types
 
 
 import qualified Data.HashTable.IO as H
@@ -19,7 +28,8 @@ data Procedure = Procedure {
   procBody :: [Statement]
 } deriving (Show, Eq, Read)
 
-data Statement = Assignment String Statement | BinOp String Statement Statement | UniOp String Statement | VarRead String | Call String [Statement] | Map Statement [Statement] | NULL
+data Statement = Assignment String Statement | BinOp String Statement Statement | UniOp String Statement | VarRead String | 
+                 Call String [Statement] | Map Statement [Statement] | NULL | IfElse Statement [Statement] [Statement] | If Statement [Statement]
   deriving (Show, Eq, Read)
 
 skipAhead = do
@@ -79,7 +89,8 @@ parseBlock = myTrace "parseBlock" $ do
   return . myShowTrace $ statements
 
 parseStatement = myTrace "parseStatement" $ do
-  stmt <- (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
+  stmt <- (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
+          <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
   return . myShowTrace $ stmt
 
 parseMap = myTrace "parseMap" $ do
@@ -88,11 +99,25 @@ parseMap = myTrace "parseMap" $ do
   stmt <- parseBlock
   return . myShowTrace $ Map val stmt
 
-parseAssignment = do
+parseIfElse = myTrace "parseIfElse" $ do
+  parseString "if"
+  cond <- parseStatement
+  ifblock <- parseBlock
+  parseString "else"
+  elseblock <- parseBlock
+  return . myShowTrace $ IfElse cond ifblock elseblock
+
+parseIf = myTrace "parseIf" $ do
+  parseString "if"
+  cond <- parseStatement
+  ifblock <- parseBlock
+  return . myShowTrace $ If cond ifblock
+
+parseAssignment = myTrace "parseAssignment" $ do
   parseChar ':'
   ident <- parseIdentifier
   stmt <- parseStatement
-  return $ Assignment ident stmt
+  return . myShowTrace $ Assignment ident stmt
 
 parseBinOp = (do
   op <- parseString "+" <|> parseString "-" <|> parseString "*"
