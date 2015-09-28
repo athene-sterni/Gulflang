@@ -24,25 +24,42 @@ newScope = do
 
 pushScope :: HashTable String Value -> Octomonad ()
 pushScope ht = do
-  (global, local) <- get
-  put (global, ht : local)
+  (global, local, procs) <- get
+  put (global, ht : local, procs)
+
+popScope :: Octomonad ()
+popScope = do
+  (global, (l:ls), procs) <- get
+  put (global, ls, procs)
 
 getGlobalScope :: Octomonad (HashTable String Value)
 getGlobalScope = do
-  (global, _) <- get
+  (global, _, _) <- get
   return global
 
 
 getLocalScopes :: Octomonad [(HashTable String Value)]
 getLocalScopes = do
-  (_, local) <- get
+  (_, local, _) <- get
   return local
 
 
 getLowestScope :: Octomonad (HashTable String Value)
 getLowestScope = do
-  (_, (x : xs)) <- get
+  (_, (x : xs), _) <- get
   return x
+
+getProcs :: Octomonad (HashTable String Procedure)
+getProcs = do
+  (_, _, procs) <- get
+  return procs
+
+
+findProc :: String -> Octomonad (Maybe Procedure)
+findProc name = do
+  procs <- getProcs
+  pv <- liftIO $ H.lookup procs name
+  return pv
 
 
 findVar :: String -> Octomonad (Maybe (HashTable String Value, Value))
@@ -89,7 +106,9 @@ evalProcedure proc args = do
    else do
      newScope
      insertArgs $ zip (procArgs proc) args
-     evalBlock $ procBody proc
+     r <- evalBlock $ procBody proc
+     popScope
+     return r
 
 
 evalBlock :: [Statement] -> Octomonad Value
@@ -101,9 +120,30 @@ evalBlock (x:xs) = do
 
 
 evalStatement :: Statement -> Octomonad Value
+evalStatement (Literal value) = return value
+
 evalStatement NULL = return ValueNULL
 
 evalStatement (VarRead var) = readVar var
+
+evalStatement (Assignment var stmt) = do
+  stmt' <- evalStatement stmt
+  setVar var stmt'
+  return stmt'
+
+evalStatement (BinOp "+" left right) = do
+  left' <- evalStatement left
+  right' <- evalStatement right
+  return $ binAdd left' right'
+
+evalStatement (Call name args) = do
+  args' <- mapM evalStatement args
+  proc <- findProc name
+  evalProcedure (fromJust proc) args'
+
+
+binAdd (ValueString left) (ValueString right) = ValueString $ left ++ right
+binAdd (ValueInteger left) (ValueInteger right) = ValueInteger $ left + right
 
 
 insertArgs :: [(String, Value)] -> Octomonad ()
@@ -115,6 +155,22 @@ insertArgs ((k,v):xs) = do
 
 runProcedure str = do
   hg <- newHT
+  hp <- H.new
   let proc = runParserWithString parseProcedure str
-  let initState = (hg, [])
+  let initState = (hg, [], hp)
   evalStateT (evalProcedure proc [ValueString "This is stdin!"]) initState
+
+runProgram str = do
+  hg <- newHT
+  let prog = runParserWithString parseProgram str
+  hp <- H.new
+  let initState = (hg, [], hp)
+  insertProcs hp prog
+  main <- H.lookup hp "Main"
+  evalStateT (evalProcedure (fromJust main) []) initState
+
+insertProcs :: HashTable String Procedure -> [Procedure] -> IO ()
+insertProcs hp [] = return ()
+insertProcs hp (x : xs) = do
+  H.insert hp (procName x) x
+  insertProcs hp xs
