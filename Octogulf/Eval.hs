@@ -173,11 +173,14 @@ bAEQ [x,y] = do
           liftIO $ exitFailure
 
 binOp "+" = binAdd
+binOp "-" = binSub
 binOp "<" = binLT
 binOp ">" = binGT
 
 binAdd (ValueString left) (ValueString right) = ValueString $ left ++ right
 binAdd (ValueInteger left) (ValueInteger right) = ValueInteger $ left + right
+
+binSub (ValueInteger left) (ValueInteger right) = ValueInteger $ left - right
 
 binLT left right = if isLT left right then ValueInteger 1 else ValueInteger 0
 

@@ -129,7 +129,7 @@ parseAssignment = myTrace "parseAssignment" $ do
 
 
 parseBinOp = myTrace "parseBinOp" $ (do
-  op <- choice $ map parseString ["+","<",">"]
+  op <- choice $ map parseString ["+","-","<",">"]
   a <- parseStatement
   b <- parseStatement
   return . myShowTrace $ BinOp op a b)
