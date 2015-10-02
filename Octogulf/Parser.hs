@@ -17,8 +17,8 @@ import Octogulf.Types
 
 import qualified Data.HashTable.IO as H
 
-myTrace a b = trace a b
-myShowTrace q = trace (show q) q
+myTrace a b = b -- trace a b
+myShowTrace q = q -- trace (show q) q
 
 skipAhead = do
   many1 (skipSpace <|> skipComment)
@@ -27,7 +27,7 @@ skipAhead = do
 
 skipSpace :: Parser ()
 skipSpace = do
-  many1 $ oneOf " "
+  many1 $ oneOf " \n\r\t"
   return ()
 
 
@@ -91,8 +91,10 @@ parseBlock = myTrace "parseBlock" $ do
 
 
 parseStatement = myTrace "parseStatement" $ do
+  optional $ skipAhead
   stmt <- (try parseStr) <|> (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
           <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
+  optional $ skipAhead
   return . myShowTrace $ stmt
 
 
@@ -127,10 +129,15 @@ parseAssignment = myTrace "parseAssignment" $ do
 
 
 parseBinOp = myTrace "parseBinOp" $ (do
-  op <- parseString "+" <|> parseString "-" <|> parseString "*" <|> parseString "<" <|> parseString ">"
+  op <- choice $ map parseString ["+","<",">"]
   a <- parseStatement
   b <- parseStatement
   return . myShowTrace $ BinOp op a b)
+
+foldM f [x] = return x
+foldM f (x:xs) = do
+  rest <- foldM f xs
+  x `f` rest
 
 
 parseUniOp = (do

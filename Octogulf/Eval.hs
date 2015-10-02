@@ -1,4 +1,5 @@
 module Octogulf.Eval (
+   runProgram
   ) where
 
 import Octogulf.Types
@@ -11,6 +12,7 @@ import System.IO
 import Control.Monad.IO.Class
 import Data.Maybe
 import qualified Data.Map as M
+import System.Exit
 
 newHT :: IO (HashTable String Value)
 newHT = H.new
@@ -153,10 +155,22 @@ evalStatement (If cond block) = do
     ValueInteger 0 -> return ValueNULL
     _ -> evalBlock block
 
-builtins :: M.Map String ([Value] -> Octomonad Value)
-builtins = M.fromList [("PrintStrLn", bPrintStrLn)]
 
-bPrintStrLn (x:xs) = liftIO $ print x >> return ValueNULL
+builtins :: M.Map String ([Value] -> Octomonad Value)
+builtins = M.fromList stdBuiltins
+
+stdBuiltins =
+  [("ValDump", bValDump), 
+   ("AEQ", bAEQ)]
+
+bValDump args = do
+  mapM_ (liftIO . print) args
+  return ValueNULL
+
+bAEQ [x,y] = do
+  if x == y then return ValueNULL
+  else do liftIO . putStrLn $ "Assertion failed: " ++ (show [x,y])
+          liftIO $ exitFailure
 
 binOp "+" = binAdd
 binOp "<" = binLT
@@ -168,6 +182,7 @@ binAdd (ValueInteger left) (ValueInteger right) = ValueInteger $ left + right
 binLT left right = if isLT left right then ValueInteger 1 else ValueInteger 0
 
 binGT left right = if isGT left right then ValueInteger 1 else ValueInteger 0
+
 
 isLT left right = left < right
 isGT left right = left > right
@@ -187,6 +202,7 @@ runProcedure str = do
   let initState = (hg, [], hp)
   evalStateT (evalProcedure proc [ValueString "This is stdin!"]) initState
 
+
 runProgram str = do
   hg <- newHT
   let prog = runParserWithString parseProgram str
@@ -195,6 +211,7 @@ runProgram str = do
   insertProcs hp prog
   main <- H.lookup hp "Main"
   evalStateT (evalProcedure (fromJust main) []) initState
+
 
 insertProcs :: HashTable String Procedure -> [Procedure] -> IO ()
 insertProcs hp [] = return ()
