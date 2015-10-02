@@ -1,0 +1,22 @@
+\=
+ If you run this program you should see the
+ value dump of an integer 42. If the program
+ aborts before doing that a test-case has
+ failed. 
+
+ Please report failing test-cases to the bug-tracker.
+
+ (c) the Octogulf people
+\
+
+Main {
+  AEQ(1 1)
+
+  \= BASIC ARITHMETIC \
+   \= INTEGER \
+   AEQ(+1 9 10)
+   AEQ(+_1 9 8)
+
+  \= 42 means all tests passed \
+  ValDump(42)
+}
