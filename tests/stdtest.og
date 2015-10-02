@@ -12,6 +12,17 @@
 Main {
   AEQ(1 1)
 
+  \= ASSIGNMENT \
+  :a 5
+  AEQ(a 5)
+  :$bc 3
+  AEQ(3 $bc)
+  :Ulse 9
+  AEQ(Ulse 9)
+  :b 5
+  AEQ(ab)
+  AEQ(+a+ba ++aaa)
+
   \= BASIC ARITHMETIC \
    \= INTEGER \
    AEQ(+1 9 10)
