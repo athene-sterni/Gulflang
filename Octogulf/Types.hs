@@ -4,7 +4,8 @@ module Octogulf.Types (
    Octomonad(..),
    Value(..),
    Procedure(..),
-   Statement(..)
+   Statement(..),
+   ObjMembers(..)
   ) where
 
 import qualified Data.HashTable.IO as H
@@ -15,8 +16,19 @@ type HashTable k v = H.CuckooHashTable k v
 type OctogulfState = (HashTable String Value, [HashTable String Value], HashTable String Procedure)
 type Octomonad a = StateT OctogulfState IO a
 
-data Value = ValueInteger Integer | ValueString String | ValueNULL
+data Value = ValueInteger Integer | ValueString String | ValueNULL | ValueObj ObjMembers
   deriving (Show, Eq, Read, Ord)
+
+data ObjMembers = ObjMembers (HashTable String Value)
+
+instance Show ObjMembers
+
+instance Eq ObjMembers
+
+instance Read ObjMembers
+
+instance Ord ObjMembers
+  
 
 data Procedure = Procedure {
   procName :: String,
@@ -25,5 +37,6 @@ data Procedure = Procedure {
 } deriving (Show, Eq, Read)
 
 data Statement = Assignment String Statement | BinOp String Statement Statement | UniOp String Statement | VarRead String | 
-                 Call String [Statement] | Map Statement [Statement] | NULL | IfElse Statement [Statement] [Statement] | If Statement [Statement] | Literal Value
+                 Call String [Statement] | Map Statement [Statement] | NULL | IfElse Statement [Statement] [Statement] | If Statement [Statement] | Literal Value |
+                 Obj [(String, Statement)] | ObjCall Statement String
   deriving (Show, Eq, Read)

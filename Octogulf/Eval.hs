@@ -155,6 +155,31 @@ evalStatement (If cond block) = do
     ValueInteger 0 -> return ValueNULL
     _ -> evalBlock block
 
+evalStatement (IfElse cond ifblock elseblock) = do
+  cond' <- evalStatement cond
+  case cond' of
+    ValueInteger 0 -> evalBlock elseblock
+    _ -> evalBlock ifblock
+
+evalStatement (ObjCall obj name) = do
+  obj' <- evalStatement obj
+  case obj' of
+    (ValueObj (ObjMembers f)) -> do
+      l <- liftIO $ H.lookup f name
+      case l of
+        (Just v) -> return v
+        _ -> return ValueNULL
+    _ -> error "Not an object!"
+
+evalStatement (Obj members) = do
+  ht <- liftIO $ newHT
+  ev <- mapM (\(n,v) -> do v' <- evalStatement v
+                           return (n, v')) members
+  liftIO $ insertMembers ht ev
+  return $ ValueObj (ObjMembers ht)
+
+evalStatement q = error (show q)
+
 
 builtins :: M.Map String ([Value] -> Octomonad Value)
 builtins = M.fromList stdBuiltins
@@ -173,22 +198,32 @@ bAEQ [x,y] = do
           liftIO $ exitFailure
 
 binOp "+" = binAdd
+binOp "*" = binMul
 binOp "-" = binSub
+binOp "/" = binDiv
 binOp "<" = binLT
 binOp ">" = binGT
+binOp "=" = binEQ
 
 binAdd (ValueString left) (ValueString right) = ValueString $ left ++ right
 binAdd (ValueInteger left) (ValueInteger right) = ValueInteger $ left + right
 
 binSub (ValueInteger left) (ValueInteger right) = ValueInteger $ left - right
 
+binMul (ValueInteger left) (ValueInteger right) = ValueInteger $ left * right
+
+binDiv (ValueInteger left) (ValueInteger right) = ValueInteger $ left `div` right
+
 binLT left right = if isLT left right then ValueInteger 1 else ValueInteger 0
 
 binGT left right = if isGT left right then ValueInteger 1 else ValueInteger 0
 
+binEQ left right = if isEQ left right then ValueInteger 1 else ValueInteger 0
+
 
 isLT left right = left < right
 isGT left right = left > right
+isEQ left right = left == right
 
 
 insertArgs :: [(String, Value)] -> Octomonad ()
@@ -221,3 +256,10 @@ insertProcs hp [] = return ()
 insertProcs hp (x : xs) = do
   H.insert hp (procName x) x
   insertProcs hp xs
+
+
+insertMembers :: HashTable String Value -> [(String, Value)] -> IO ()
+insertMembers hp [] = return ()
+insertMembers hp ((x,v) : xs) = do
+  H.insert hp x v
+  insertMembers hp xs

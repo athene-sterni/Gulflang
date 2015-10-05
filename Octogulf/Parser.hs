@@ -92,7 +92,7 @@ parseBlock = myTrace "parseBlock" $ do
 
 parseStatement = myTrace "parseStatement" $ do
   optional $ skipAhead
-  stmt <- (try parseStr) <|> (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
+  stmt <- (try parseObjCall) <|> (try parseObj) <|> (try parseStr) <|> (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
           <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
   optional $ skipAhead
   return . myShowTrace $ stmt
@@ -103,6 +103,27 @@ parseMap = myTrace "parseMap" $ do
   val <- parseStatement
   stmt <- parseBlock
   return . myShowTrace $ Map val stmt
+
+
+parseObj = myTrace "parseObj" $ do
+  parseString "obj"
+  parseChar '{'
+  f <- many parseKV
+  parseChar '}'
+  return . myShowTrace $ Obj f
+
+
+parseKV = do
+  ident <- parseIdentifier
+  val <- parseStatement
+  return . myShowTrace $ (ident, val)
+
+
+parseObjCall = myTrace "parseObjCall" $ do
+  parseChar '.'
+  obj <- parseStatement
+  name <- parseIdentifier
+  return . myShowTrace $ ObjCall obj name
 
 
 parseIfElse = myTrace "parseIfElse" $ do
@@ -129,7 +150,7 @@ parseAssignment = myTrace "parseAssignment" $ do
 
 
 parseBinOp = myTrace "parseBinOp" $ (do
-  op <- choice $ map parseString ["+","-","<",">"]
+  op <- choice $ map (try . parseString) ["+","-","<",">","=","*","/"]
   a <- parseStatement
   b <- parseStatement
   return . myShowTrace $ BinOp op a b)

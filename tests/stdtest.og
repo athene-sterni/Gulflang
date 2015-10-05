@@ -29,10 +29,35 @@ Main {
    AEQ(+_1 9 8)
    AEQ(-5 3 2)
    AEQ(-5 _3 8)
+   AEQ(*5 3 15)
+   AEQ(*5 _3 _15)
+   AEQ(/15 3 5)
+   AEQ(/15 _3 _5)
 
   \= STRING OPERATORS \
    AEQ(+"Hi " "there" "Hi there")
 
+  \= COMPARISONS \
+   \= INTEGER \
+   if >1 0 { } else { AEQ(1 0) }
+   if <1 0 { AEQ(1 0) } else { }
+   if =9 9 { } else { AEQ(1 0) }
+   if =8 9 { AEQ(1 0) } else { }
+
+   \= STRINGS \
+   if >"cc" "ca" { } else { AEQ(1 0) }
+   if <"cc" "ca" { AEQ(1 0) } else { }
+   if ="cc" "cc" { } else { AEQ(1 0) }
+   if ="cc" "ca" { AEQ(1 0) } else { }
+
+
+  \= BASIC OOP STUFF \
+  AEQ(.New() a 5)
+
   \= 42 means all tests passed \
   ValDump(42)
+}
+
+New {
+  obj { a 5 }
 }
