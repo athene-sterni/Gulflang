@@ -149,6 +149,19 @@ evalStatement (Call name args) = do
    args' <- mapM evalStatement args
    q args'
 
+evalStatement (InvokeObj obj name args) = do
+ obj' <- evalStatement obj
+ args' <- mapM evalStatement args
+ case obj' of
+    (ValueObj (ObjMembers f)) -> do
+      l <- liftIO $ H.lookup f name
+      case l of
+        (Just v) -> case v of
+                      (ValueProc proc) -> evalProcedure proc (obj' : args')
+                      _ -> error "Not an inline procedure!"
+        _ -> return ValueNULL
+    _ -> error "Not an object!"
+
 evalStatement (If cond block) = do
   cond' <- evalStatement cond
   case cond' of

@@ -30,4 +30,10 @@ main = do
     ["--version"] -> usage
     ["--help"] -> usage
     _ -> usage
-  
+ 
+
+runFile :: String -> IO () -- GHCI
+runFile path = do
+  txt <- readFile path
+  runProgram txt
+  return ()

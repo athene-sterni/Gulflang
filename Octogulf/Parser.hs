@@ -92,7 +92,9 @@ parseBlock = myTrace "parseBlock" $ do
 
 parseStatement = myTrace "parseStatement" $ do
   optional $ skipAhead
-  stmt <- (try parseObjCall) <|> (try parseObj) <|> (try parseStr) <|> (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|> (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
+  stmt <- (try parseInvokeObj) <|> (try parseInlineProc) <|> (try parseObjCall) <|> (try parseObj) <|> (try parseStr) <|> 
+          (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|>
+          (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
           <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
   optional $ skipAhead
   return . myShowTrace $ stmt
@@ -111,6 +113,24 @@ parseObj = myTrace "parseObj" $ do
   f <- many parseKV
   parseChar '}'
   return . myShowTrace $ Obj f
+
+
+parseInlineProc = myTrace "parseInlineProc" $ do
+  parseString "proc"
+  args <- parseArgs
+  proc <- parseBlock
+  return . myShowTrace $ Literal (ValueProc (Procedure { procName = "<inline>", procArgs = args, procBody = proc} ))
+
+
+parseInvokeObj = myTrace "parseInvokeObj" $ do
+  parseChar '`'
+  obj <- parseStatement
+  parseString "::"
+  name <- parseIdentifier
+  parseChar '('
+  args <- many parseStatement
+  parseChar ')'
+  return . myShowTrace $ InvokeObj obj name args
 
 
 parseKV = do

@@ -1,0 +1,28 @@
+\=
+ Part of the test-suite to test oop stuff specifically. 
+
+ (c) the Octogulf people
+\
+
+New { obj { a 5 } }
+
+Main {
+  AEQ(.New() a 5)
+  AEQ(`Point(5 8)::Dst() 8)
+  AEQ(`Point(11 8)::Dst() 11)
+  ValDump(42)
+}
+
+Point x y {
+  obj {
+    x x
+    y y
+    Dst proc Me {
+      if >.Me x .Me y {
+        .Me x
+      } else {
+        .Me y
+      }
+    }
+  }
+}
