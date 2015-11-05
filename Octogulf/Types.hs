@@ -39,5 +39,5 @@ data Procedure = Procedure {
 
 data Statement = Assignment String Statement | BinOp String Statement Statement | UniOp String Statement | VarRead String | 
                  Call String [Statement] | Map Statement [Statement] | NULL | IfElse Statement [Statement] [Statement] | If Statement [Statement] | Literal Value |
-                 Obj [(String, Statement)] | ObjCall Statement String | InvokeObj Statement String [Statement]
+                 Obj [(String, Statement)] | ObjCall Statement String | InvokeObj Statement String [Statement] | ObjAssignment Statement String Statement
   deriving (Show, Eq, Read, Ord)

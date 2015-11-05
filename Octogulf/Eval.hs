@@ -184,6 +184,15 @@ evalStatement (ObjCall obj name) = do
         _ -> return ValueNULL
     _ -> error "Not an object!"
 
+evalStatement (ObjAssignment obj name value) = do
+  obj' <- evalStatement obj
+  value' <- evalStatement value
+  case obj' of
+    (ValueObj (ObjMembers f)) -> do
+      liftIO $ H.insert f name value'
+      return obj'
+    _ -> error "Not an object!"
+
 evalStatement (Obj members) = do
   ht <- liftIO $ newHT
   ev <- mapM (\(n,v) -> do v' <- evalStatement v

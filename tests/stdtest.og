@@ -52,7 +52,7 @@ Main {
 
 
   \= BASIC OOP STUFF \
-  AEQ(.New() a 5)
+  AEQ(.New()~>a 5)
 
   \= 42 means all tests passed \
   ValDump(42)

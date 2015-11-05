@@ -7,9 +7,15 @@
 New { obj { a 5 } }
 
 Main {
-  AEQ(.New() a 5)
-  AEQ(`Point(5 8)::Dst() 8)
-  AEQ(`Point(11 8)::Dst() 11)
+  AEQ(.New()~>a 5)
+  AEQ(`Point(5 8)~>Dst() 8)
+  AEQ(`Point(11 8)~>Dst() 11)
+  :f Counter()
+  ValDump(.f~>Count)
+  `f~>Inc()
+  `f~>Inc()
+  ValDump(.f~>Count)
+  AEQ(.f~>Count 2)
   ValDump(42)
 }
 
@@ -18,11 +24,21 @@ Point x y {
     x x
     y y
     Dst proc Me {
-      if >.Me x .Me y {
-        .Me x
+      if >.Me~>x .Me~>y {
+        .Me~>x
       } else {
-        .Me y
+        .Me~>y
       }
+    }
+  }
+}
+
+Counter {
+  obj {
+    Count 0
+
+    Inc proc Me {
+      @Me~>Count +.Me~>Count 1
     }
   }
 }

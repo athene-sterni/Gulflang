@@ -64,8 +64,7 @@ parseIdentifier = myTrace "parseIdentifier" $ do
   optional skipAhead
   ident <- (do { char '$'; i <- many1 $ oneOf (['a'..'z']++['A'..'Z']); return i;} <|>
             do { c <- oneOf ['a'..'z']; return [c]; } <|>
-            do { c <- oneOf ['A'..'Z']; i <- many1 $ oneOf (['a'..'z']++['A'..'Z']); return $ c:i;} <|>
-            do { char '@'; return "@"; })
+            do { c <- oneOf ['A'..'Z']; i <- many1 $ oneOf (['a'..'z']++['A'..'Z']); return $ c:i;})
   optional skipAhead
   return . myShowTrace $ ident
 
@@ -92,7 +91,7 @@ parseBlock = myTrace "parseBlock" $ do
 
 parseStatement = myTrace "parseStatement" $ do
   optional $ skipAhead
-  stmt <- (try parseInvokeObj) <|> (try parseInlineProc) <|> (try parseObjCall) <|> (try parseObj) <|> (try parseStr) <|> 
+  stmt <- (try parseObjAssignment) <|> (try parseInvokeObj) <|> (try parseInlineProc) <|> (try parseObjCall) <|> (try parseObj) <|> (try parseStr) <|> 
           (try parseInt) <|> (try parseIfElse) <|> (try parseIf) <|>
           (try parseMap) <|> (try parseAssignment) <|> (try parseBinOp) 
           <|> parseUniOp <|> (try parseCall) <|> parseVarRead <|> (parseChar 'q' >> return NULL)
@@ -125,7 +124,7 @@ parseInlineProc = myTrace "parseInlineProc" $ do
 parseInvokeObj = myTrace "parseInvokeObj" $ do
   parseChar '`'
   obj <- parseStatement
-  parseString "::"
+  parseString "~>"
   name <- parseIdentifier
   parseChar '('
   args <- many parseStatement
@@ -142,6 +141,7 @@ parseKV = do
 parseObjCall = myTrace "parseObjCall" $ do
   parseChar '.'
   obj <- parseStatement
+  parseString "~>"
   name <- parseIdentifier
   return . myShowTrace $ ObjCall obj name
 
@@ -167,6 +167,15 @@ parseAssignment = myTrace "parseAssignment" $ do
   ident <- parseIdentifier
   stmt <- parseStatement
   return . myShowTrace $ Assignment ident stmt
+
+
+parseObjAssignment = myTrace "parseObjAssignment" $ do
+  parseChar '@'
+  obj <- parseStatement
+  parseString "~>"
+  name <- parseIdentifier
+  stmt <- parseStatement
+  return . myShowTrace $ ObjAssignment obj name stmt
 
 
 parseBinOp = myTrace "parseBinOp" $ (do
